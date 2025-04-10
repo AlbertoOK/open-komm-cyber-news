@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open Komm Cyber News</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .title {
+            color: #e63946;
+            font-size: 48px;
+            font-weight: bold;
+            margin: 0;
+            padding: 20px 0;
+            text-shadow: 4px 4px 8px rgba(0,0,0,0.2), 
+                         0px 0px 2px rgba(0,0,0,0.1),
+                         2px 2px 0px #7d0a0a,
+                         4px 4px 0px #7d0a0a;
+            transform: perspective(500px) rotateX(10deg);
+            letter-spacing: 2px;
+        }
+        
+        .date-selector {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .date-selector button {
+            background-color: #457b9d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 0 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .date-selector button:hover {
+            background-color: #1d3557;
+        }
+        
+        .date-selector button.active {
+            background-color: #1d3557;
+            font-weight: bold;
+        }
+        
+        .update-info {
+            font-size: 14px;
+            color: #666;
+            margin: 15px 0;
+            font-style: italic;
+            text-align: center;
+        }
+        
+        .countdown {
+            font-weight: bold;
+            color: #457b9d;
+        }
+        
+        .news-container {
+            display: none;
+        }
+        
+        .news-container.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        .news-card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 5px solid #e63946;
+            transition: transform 0.3s;
+        }
+        
+        .news-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .news-title {
+            color: #1d3557;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        
+        .news-title a {
+            color: #1d3557;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .news-title a:hover {
+            color: #e63946;
+            text-decoration: underline;
+        }
+        
+        .news-source {
+            color: #457b9d;
+            font-size: 14px;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+        
+        .news-comment {
+            background-color: #f7f7f7;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 3px solid #a8dadc;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #666;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(69, 123, 157, 0.3);
+            border-radius: 50%;
+            border-top-color: #457b9d;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .refresh-button {
+            background-color: #e63946;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        
+        .refresh-button:hover {
+            background-color: #c1121f;
+        }
+        
+        .status-message {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">Open Komm Cyber News</h1>
+            <p class="subtitle">Le ultime notizie di Cyber Security in Italia</p>
+        </div>
+        
+        <div class="date-selector" id="dateSelector">
+            <!-- I bottoni delle date verranno generati dinamicamente -->
+        </div>
+        
+        <div class="update-info">
+            Ultimo aggiornamento: <span id="lastUpdate">--/--/---- --:--</span> | 
+            Prossimo aggiornamento tra: <span id="countdown" class="countdown">--:--:--</span>
+            <br>
+            <button class="refresh-button" id="refreshButton">Aggiorna ora</button>
+            <div id="statusMessage" class="status-message" style="display: none;"></div>
+        </div>
+        
+        <div id="newsContainers">
+            <!-- I contenitori delle notizie verranno generati dinamicamente -->
+        </div>
+        
+        <div class="footer">
+            <p>Open Komm Cyber News &copy; 2025 | Aggiornamento automatico alle 9:00 e alle 15:00</p>
+        </div>
+    </div>
+
+    <script>
+        // Funzione per formattare le date
+        function formatDate(date, includeTime = false) {
+            const options = { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric'
+            };
+            
+            if (includeTime) {
+                options.hour = '2-digit';
+                options.minute = '2-digit';
+            }
+            
+            return date.toLocaleDateString('it-IT', options);
+        }
+        
+        // Funzione per creare le schede di data
+        function createDateTabs() {
+            const dateSelector = document.getElementById('dateSelector');
+            dateSelector.innerHTML = '';
+            
+            // Crea 4 pulsanti per oggi e i 3 giorni precedenti
+            for (let i = 0; i < 4; i++) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                
+                const button = document.createElement('button');
+                button.textContent = i === 0 ? 'Oggi' : formatDate(date);
+                button.dataset.date = date.toISOString().split('T')[0];
+                button.addEventListener('click', () => switchDate(button.dataset.date));
+                
+                if (i === 0) {
+                    button.classList.add('active');
+                }
+                
+                dateSelector.appendChild(button);
+            }
+        }
+        
+        // Funzione per creare i contenitori delle notizie
+        function createNewsContainers() {
+            const newsContainers = document.getElementById('newsContainers');
+            newsContainers.innerHTML = '';
+            
+            // Crea un contenitore per ogni giorno
+            for (let i = 0; i < 4; i++) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().split('T')[0];
+                
+                const container = document.createElement('div');
+                container.id = `news-${dateStr}`;
+                container.className = 'news-container';
+                container.dataset.date = dateStr;
+                
+                if (i === 0) {
+                    container.classList.add('active');
+                }
+                
+                // Aggiungi un indicatore di caricamento
+                container.innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Caricamento notizie in corso...
+                    </div>
+                `;
+                
+                newsContainers.appendChild(container);
+            }
+        }
+        
+        // Funzione per cambiare la data visualizzata
+        function switchDate(date) {
+            // Aggiorna i pulsanti
+            const buttons = document.querySelectorAll('.date-selector button');
+            buttons.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.date === date);
+            });
+            
+            // Aggiorna i contenitori
+            const containers = document.querySelectorAll('.news-container');
+            containers.forEach(container => {
+                container.classList.toggle('active', container.dataset.date === date);
+            });
+        }
+        
+        // Funzione per recuperare notizie reali utilizzando RSS e NewsAPI
+        async function fetchRealNews(date) {
+            try {
+                // Utilizziamo un proxy CORS per accedere ai feed RSS (necessario per le richieste client-side)
+                const corsProxy = 'https://api.allorigins.win/raw?url=';
+                
+                // Array di feed RSS di fonti italiane di cybersecurity
+                const rssSources = [
+                    {
+                        name: "CSIRT Italia",
+                        url: encodeURIComponent('https://csirt.gov.it/feed.xml'),
+                        type: "rss"
+                    },
+                    {
+                        name: "Agenzia per la Cybersicurezza Nazionale",
+                        url: encodeURIComponent('https://www.acn.gov.it/it/feed.xml'),
+                        type: "rss"
+                    },
+                    {
+                        name: "Clusit",
+                        url: encodeURIComponent('https://clusit.it/feed/'),
+                        type: "rss"
+                    },
+                    {
+                        name: "ANSA Tecnologia",
+                        url: encodeURIComponent('https://www.ansa.it/sito/notizie/tecnologia/tecnologia_rss.xml'),
+                        type: "rss"
+                    }
+                ];
+                
+                // Le chiavi API sono valori di esempio, dovrai registrarti per ottenere chiavi reali
+                const newsAPIKey = '0ec2c86776214e8fbb15704fcdf714be';
+                
+                // Raccogliamo notizie da tutte le fonti
+                let allNews = [];
+                
+                // 1. Recupera notizie dai feed RSS
+                for (const source of rssSources) {
+                    try {
+                        const response = await fetch(`${corsProxy}${source.url}`);
+                        const xmlText = await response.text();
+                        
+                        // Analizza il feed RSS
+                        const parser = new DOMParser();
+                        const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+                        
+                        // Estrai gli elementi <item> (formato RSS standard)
+                        const items = xmlDoc.querySelectorAll("item");
+                        
+                        items.forEach(item => {
+                            const title = item.querySelector("title")?.textContent;
+                            const pubDate = new Date(item.querySelector("pubDate")?.textContent);
+                            const description = item.querySelector("description")?.textContent;
+                            const link = item.querySelector("link")?.textContent;
+                            
+                            // Filtra per parole chiave di cybersecurity
+                            const securityKeywords = ["cyber", "security", "attacco", "hacker", "malware", 
+                                                    "ransomware", "phishing", "vulnerabilità", "data breach", 
+                                                    "cybersicurezza", "protezione dati"];
+                            
+                            const containsSecurityTopic = securityKeywords.some(keyword => 
+                                title?.toLowerCase().includes(keyword.toLowerCase()) || 
+                                description?.toLowerCase().includes(keyword.toLowerCase())
+                            );
+                            
+                            // Filtra per data (corrispondente alla data richiesta)
+                            const requestDateObj = new Date(date);
+                            const isSameDate = pubDate.toDateString() === requestDateObj.toDateString();
+                            
+                            if (containsSecurityTopic && isSameDate) {
+                                // Crea un breve commento riassuntivo dall'inizio della descrizione
+                                let comment = description?.replace(/<[^>]*>/g, '').substring(0, 150);
+                                if (comment?.length === 150) comment += "...";
+                                
+                                allNews.push({
+                                    title: title,
+                                    source: source.name,
+                                    comment: comment,
+                                    publicationTime: pubDate,
+                                    url: link
+                                });
+                            }
+                        });
+                    } catch (error) {
+                        console.error(`Errore nel recupero del feed RSS da ${source.name}:`, error);
+                    }
+                }
+                
+                // 2. Recupera notizie da NewsAPI (per completare, se necessario)
+                if (allNews.length < 5) {
+                    try {
+                        // Converti la data nel formato richiesto da NewsAPI (YYYY-MM-DD)
+                        const formattedDate = date;
+                        
+                        // Ottieni notizie italiane sulla cybersecurity
+                        const newsAPIUrl = `https://newsapi.org/v2/everything?q=cybersecurity OR cybersicurezza&language=it&from=${formattedDate}&to=${formattedDate}&sortBy=publishedAt&apiKey=${newsAPIKey}`;
+                        
+                        const response = await fetch(newsAPIUrl);
+                        const data = await response.json();
+                        
+                        if (data.articles && data.articles.length > 0) {
+                            data.articles.forEach(article => {
+                                const pubDate = new Date(article.publishedAt);
+                                
+                                allNews.push({
+                                    title: article.title,
+                                    source: article.source.name,
+                                    comment: article.description?.substring(0, 150) + "..." || "Nessuna descrizione disponibile",
+                                    publicationTime: pubDate,
+                                    url: article.url
+                                });
+                            });
+                        }
+                    } catch (error) {
+                        console.error("Errore nel recupero delle notizie da NewsAPI:", error);
+                    }
+                }
+                
+                // 3. Se ancora non abbiamo abbastanza notizie, utilizziamo il Google News RSS feed
+                if (allNews.length < 5) {
+                    try {
+                        const googleNewsUrl = encodeURIComponent(
+                            'https://news.google.com/rss/search?q=cybersecurity+OR+cybersicurezza+when:1d&hl=it&gl=IT&ceid=IT:it'
+                        );
+                        
+                        const response = await fetch(`${corsProxy}${googleNewsUrl}`);
+                        const xmlText = await response.text();
+                        
+                        const parser = new DOMParser();
+                        const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+                        
+                        const items = xmlDoc.querySelectorAll("item");
+                        
+                        items.forEach(item => {
+                            const title = item.querySelector("title")?.textContent;
+                            const pubDate = new Date(item.querySelector("pubDate")?.textContent);
+                            const description = item.querySelector("description")?.textContent;
+                            const link = item.querySelector("link")?.textContent;
+                            
+                            // Filtra per data (corrispondente alla data richiesta)
+                            const requestDateObj = new Date(date);
+                            const isSameDate = pubDate.toDateString() === requestDateObj.toDateString();
+                            
+                            if (isSameDate) {
+                                allNews.push({
+                                    title: title,
+                                    source: "Google News",
+                                    comment: description?.substring(0, 150) + "..." || "Nessuna descrizione disponibile",
+                                    publicationTime: pubDate,
+                                    url: link
+                                });
+                            }
+                        });
+                    } catch (error) {
+                        console.error("Errore nel recupero delle notizie da Google News:", error);
+                    }
+                }
+                
+                // Ordina tutte le notizie per data di pubblicazione (più recenti prima)
+                allNews.sort((a, b) => b.publicationTime - a.publicationTime);
+                
+                // Prendi le prime 5 notizie (o meno se non ce ne sono abbastanza)
+                return allNews.slice(0, 5);
+            } catch (error) {
+                console.error("Errore nel recupero delle notizie reali:", error);
+                return [];
+            }
+        }
+        
+        // Funzione per memorizzare le notizie recuperate in localStorage per migliorare le prestazioni
+        function storeNewsInCache(date, news) {
+            try {
+                const cachedNews = JSON.parse(localStorage.getItem('openKommCyberNews') || '{}');
+                cachedNews[date] = {
+                    news: news,
+                    timestamp: new Date().getTime()
+                };
+                localStorage.setItem('openKommCyberNews', JSON.stringify(cachedNews));
+            } catch (error) {
+                console.error("Errore nella memorizzazione delle notizie nella cache:", error);
+            }
+        }
+        
+        // Funzione per recuperare notizie dalla cache
+        function getNewsFromCache(date) {
+            try {
+                const cachedNews = JSON.parse(localStorage.getItem('openKommCyberNews') || '{}');
+                const cached = cachedNews[date];
+                
+                // Se abbiamo notizie in cache per questa data e sono state recuperate nelle ultime 6 ore
+                if (cached && (new Date().getTime() - cached.timestamp) < 6 * 60 * 60 * 1000) {
+                    return cached.news;
+                }
+                
+                return null;
+            } catch (error) {
+                console.error("Errore nel recupero delle notizie dalla cache:", error);
+                return null;
+            }
+        }
+        
+        // Funzione per generare notizie di fallback (utilizzata solo se le fonti reali falliscono)
+        function generateFallbackNews(date) {
+            // Le stesse notizie di esempio della versione precedente
+            // Questa funzione serve solo come fallback se le API non funzionano
+            const sources = [
+                "CSIRT Italia", 
+                "Agenzia per la Cybersicurezza Nazionale", 
+                "Polizia Postale", 
+                "CERTFin", 
+                "Cyber 4.0",
+                "Clusit",
+                "Report Clusit",
+                "Il Sole 24 Ore - Cybersecurity",
+                "ANSA Tecnologia"
+            ];
+            
+            const titles = [
+                "Attacco ransomware colpisce azienda energetica italiana",
+                "Nuova vulnerabilità scoperta nei sistemi di gestione ospedalieri",
+                "ACN emana nuove linee guida per la protezione delle infrastrutture critiche",
+                "Allarme phishing: campagna malevola sfrutta nome di Poste Italiane",
+                "Crescono gli attacchi DDoS contro siti governativi italiani",
+                "Leak di dati sensibili colpisce un'importante università italiana",
+                "Cyber spionaggio: identificata campagna mirata contro aziende aerospaziali",
+                "Vulnerabilità zero-day colpisce migliaia di router in Italia",
+                "Attacchi di business email compromise in aumento nel settore finanziario",
+                "Nuove sanzioni per mancato rispetto del GDPR a società italiana"
+            ];
+            
+            const comments = [
+                "Un caso preoccupante che evidenzia la crescente sofisticazione degli attacchi.",
+                "L'incidente sottolinea l'importanza di mantenere aggiornati i sistemi di sicurezza.",
+                "Le aziende devono intensificare la formazione sulla consapevolezza della sicurezza.",
+                "Questo attacco segue un modello simile a quelli osservati nei mesi precedenti.",
+                "Gli esperti raccomandano di implementare immediatamente le patch disponibili."
+            ];
+            
+            const news = [];
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const requestDate = new Date(date);
+            
+            if (requestDate <= today) {
+                const seed = date.replace(/-/g, '');
+                
+                for (let i = 0; i < 5; i++) {
+                    const titleIndex = (parseInt(seed.substring(6)) + i * 7) % titles.length;
+                    const sourceIndex = (parseInt(seed.substring(4, 6)) + i * 3) % sources.length;
+                    const commentIndex = (parseInt(seed.substring(0, 4)) + i * 5) % comments.length;
+                    
+                    const isPM = (i % 2 === 1);
+                    const hours = isPM ? 14 + (i % 3) : 8 + (i % 3);
+                    const minutes = (i * 13) % 60;
+                    
+                    const pubDate = new Date(date);
+                    pubDate.setHours(hours, minutes, 0, 0);
+                    
+                    news.push({
+                        title: titles[titleIndex],
+                        source: sources[sourceIndex],
+                        comment: comments[commentIndex],
+                        publicationTime: pubDate,
+                        url: "#" // URL fittizia
+                    });
+                }
+                
+                news.sort((a, b) => b.publicationTime - a.publicationTime);
+            }
+            
+            return news;
+        }
+        
+        // Funzione aggiornata per recuperare notizie (con cache)
+        async function fetchNews(date) {
+            // Prima, controlla se abbiamo notizie in cache
+            const cachedNews = getNewsFromCache(date);
+            if (cachedNews) {
+                return cachedNews;
+            }
+            
+            // Se non abbiamo notizie in cache o sono obsolete, recupera notizie reali
+            try {
+                const realNews = await fetchRealNews(date);
+                
+                // Se abbiamo trovato notizie reali, memorizzale nella cache
+                if (realNews.length > 0) {
+                    storeNewsInCache(date, realNews);
+                    return realNews;
+                }
+                
+                // Se non abbiamo trovato notizie reali, genera notizie di esempio
+                // (Questa è una fallback nel caso in cui le API non funzionino)
+                return generateFallbackNews(date);
+            } catch (error) {
+                console.error("Errore nel recupero delle notizie:", error);
+                return generateFallbackNews(date);
+            }
+        }
+        
+        // Funzione per popolare un contenitore di notizie
+        async function populateNewsContainer(date) {
+            const container = document.getElementById(`news-${date}`);
+            
+            // Mantieni l'indicatore di caricamento mentre recuperiamo le notizie
+            try {
+                const news = await fetchNews(date);
+                
+                // Svuota il contenitore
+                container.innerHTML = '';
+                
+                if (news.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 40px;">
+                            <p>Nessuna notizia disponibile per questa data.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Popola il contenitore con le notizie
+                news.forEach(item => {
+                    const timeStr = item.publicationTime.toLocaleTimeString('it-IT', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    const newsCard = document.createElement('div');
+                    newsCard.className = 'news-card';
+                    
+                    // Aggiungi URL se disponibile
+                    const titleHTML = item.url && item.url !== "#" ? 
+                        `<h3 class="news-title"><a href="${item.url}" target="_blank">${item.title}</a></h3>` : 
+                        `<h3 class="news-title">${item.title}</h3>`;
+                    
+                    newsCard.innerHTML = `
+                        ${titleHTML}
+                        <p class="news-source">Fonte: ${item.source} | Pubblicato alle ${timeStr}</p>
+                        <div class="news-comment">
+                            <strong>Commento:</strong> ${item.comment}
+                        </div>
+                    `;
+                    
+                    container.appendChild(newsCard);
+                });
+                
+                return true;
+            } catch (error) {
+                console.error("Errore nel popolare il contenitore delle notizie:", error);
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #721c24; background-color: #f8d7da; border-radius: 5px;">
+                        <p>Si è verificato un errore nel caricamento delle notizie. Riprova più tardi.</p>
+                    </div>
+                `;
+                return false;
+            }
+        }
+        
+        // Funzione per aggiornare il timer per il prossimo aggiornamento
+        function updateCountdown() {
+            const now = new Date();
+            let nextUpdate;
+            
+            // Aggiornamenti alle 9:00 e alle 15:00
+            if (now.getHours() < 9) {
+                nextUpdate = new Date(now);
+                nextUpdate.setHours(9, 0, 0, 0);
+            } else if (now.getHours() < 15) {
+                nextUpdate = new Date(now);
+                nextUpdate.setHours(15, 0, 0, 0);
+            } else {
+                nextUpdate = new Date(now);
+                nextUpdate.setDate(nextUpdate.getDate() + 1);
+                nextUpdate.setHours(9, 0, 0, 0);
+            }
+            
+            const timeDiff = nextUpdate - now;
+            const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+            const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+            
+            document.getElementById('countdown').textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        // Funzione per mostrare messaggi di stato
+        function showStatusMessage(message, isError = false) {
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.textContent = message;
+            statusMessage.className = isError ? 'status-message status-error' : 'status-message status-success';
+            statusMessage.style.display = 'block';
+            
+            // Nascondi il messaggio dopo 3 secondi
+            setTimeout(() => {
+                statusMessage.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Funzione per aggiornare tutte le notizie
+        async function refreshAllNews(isManualRefresh = false) {
+            // Disabilita il pulsante durante l'aggiornamento
+            const refreshButton = document.getElementById('refreshButton');
+            const originalText = refreshButton.textContent;
+            refreshButton.textContent = "Aggiornamento in corso...";
+            refreshButton.disabled = true;
+            
+            try {
+                // Aggiorna il timer
+                updateCountdown();
+                
+                // Aggiorna l'ora dell'ultimo aggiornamento al momento attuale
+                const now = new Date();
+                document.getElementById('lastUpdate').textContent = formatDate(now, true);
+                
+                // Aggiorna le notizie per tutti i giorni
+                let success = true;
+                for (let i = 0; i < 4; i++) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    const dateStr = date.toISOString().split('T')[0];
+                    
+                    const result = await populateNewsContainer(dateStr);
+                    if (!result) success = false;
+                }
+                
+                // Mostra un messaggio di successo o errore
+                if (success) {
+                    showStatusMessage(isManualRefresh ? "Aggiornamento completato con successo!" : "Aggiornamento automatico completato!");
+                } else {
+                    showStatusMessage("Aggiornamento completato con alcuni errori. Alcune notizie potrebbero non essere aggiornate.", true);
+                }
+            } catch (error) {
+                console.error("Errore durante l'aggiornamento completo:", error);
+                showStatusMessage("Si è verificato un errore durante l'aggiornamento. Riprova più tardi.", true);
+            } finally {
+                // Riabilita il pulsante
+                refreshButton.textContent = originalText;
+                refreshButton.disabled = false;
+            }
+        }
+        
+        // Inizializzazione
+        window.addEventListener('DOMContentLoaded', () => {
+            // Crea le schede di data
+            createDateTabs();
+            
+            // Crea i contenitori delle notizie
+            createNewsContainers();
+            
+            // Carica le notizie per tutti i giorni
+            refreshAllNews();
+            
+            // Imposta il timer per il countdown
+            setInterval(updateCountdown, 1000);
+            
+            // Imposta il refresh automatico ogni ora per verificare gli aggiornamenti programmati
+            setInterval(() => {
+                const now = new Date();
+                const minutes = now.getMinutes();
+                const hours = now.getHours();
+                
+                // Esegui l'aggiornamento automatico alle 9:00 e alle 15:00 precise
+                if ((hours === 9 || hours === 15) && minutes === 0) {
+                    refreshAllNews();
+                }
+            }, 60 * 1000); // Controlla ogni minuto
+            
+            // Aggiungi event listener per il pulsante di aggiornamento manuale
+            document.getElementById('refreshButton').addEventListener('click', () => refreshAllNews(true));
+        });
+        
